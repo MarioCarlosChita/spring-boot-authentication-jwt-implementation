@@ -1,5 +1,6 @@
 package dev.mario.auth.security;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Component;
 
 import io.jsonwebtoken.*;
@@ -50,5 +51,13 @@ public class JwtUtil {
             System.out.println("JWT claims string is empty: " + e.getMessage());
         }
         return false;
+    }
+
+    public String parseJwt(HttpServletRequest request) {
+        String headerAuth = request.getHeader("Authorization");
+        if (headerAuth != null && headerAuth.startsWith("Bearer ")) {
+            return headerAuth.substring(7);
+        }
+        return null;
     }
 }
