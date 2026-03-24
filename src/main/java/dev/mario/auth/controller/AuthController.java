@@ -7,6 +7,7 @@ import dev.mario.auth.service.TokenBlackListService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.apache.coyote.Response;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
@@ -19,6 +20,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -37,14 +39,19 @@ public class AuthController  {
 
     @PostMapping("/signin")
     public String authenticateUser(@RequestBody User user) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        user.getUsername(),
-                        user.getPassword()
-                )
-        );
-        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-        return jwtUtils.generateToken(userDetails.getUsername());
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            user.getUsername(),
+                            user.getPassword()
+                    )
+            );
+            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+            return jwtUtils.generateToken(userDetails.getUsername());
+        } catch (BadCredentialsException ex) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN ,"Invalid credential");
+        }
+
     }
     @PostMapping("/signup")
     public String registerUser(@RequestBody User user) {
