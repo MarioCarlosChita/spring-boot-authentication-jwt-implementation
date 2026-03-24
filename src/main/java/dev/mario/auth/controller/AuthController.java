@@ -49,7 +49,9 @@ public class AuthController  {
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();
             return jwtUtils.generateToken(userDetails.getUsername());
         } catch (BadCredentialsException ex) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN ,"Invalid credential");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN ,"Invalid credentials");
+        } catch (Exception ex) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Authentication failed", ex);
         }
 
     }
