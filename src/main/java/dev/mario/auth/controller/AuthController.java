@@ -22,6 +22,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController  {
@@ -38,7 +41,7 @@ public class AuthController  {
     TokenBlackListService   tokenBlackListService;
 
     @PostMapping("/signin")
-    public String authenticateUser(@RequestBody User user) {
+    public ResponseEntity<?> authenticateUser(@RequestBody User user) {
         try {
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
@@ -47,7 +50,14 @@ public class AuthController  {
                     )
             );
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-            return jwtUtils.generateToken(userDetails.getUsername());
+            String accessToken = jwtUtils.generateAccessToken(userDetails.getUsername());
+            String refreshToken = jwtUtils.generateRefreshToken(userDetails.getUsername());
+
+            Map<String,String> responseTokens=  new HashMap<>();
+            responseTokens.put("AccessToken", accessToken);
+            responseTokens.put("RefreshToken",refreshToken);
+
+            return ResponseEntity.ok(responseTokens);
         } catch (BadCredentialsException ex) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN ,"Invalid credentials");
         } catch (Exception ex) {
@@ -74,12 +84,13 @@ public class AuthController  {
     public ResponseEntity<String> logout(HttpServletRequest request, HttpServletResponse response) {
         Authentication authentication =   SecurityContextHolder.getContext().getAuthentication();
 
-        if (authentication != null && authentication.isAuthenticated()) {
-            String token = jwtUtils.parseJwt(request);
-            tokenBlackListService.addToken(token);
-
-            new SecurityContextLogoutHandler().logout(request, response, authentication);
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User is not authenticated");
         }
+        String token = jwtUtils.parseJwt(request);
+        tokenBlackListService.addToken(token);
+
+        new SecurityContextLogoutHandler().logout(request, response, authentication);
         return ResponseEntity.ok("Logout successfully");
     }
 }
